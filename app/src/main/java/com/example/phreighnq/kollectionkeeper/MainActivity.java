@@ -7,9 +7,12 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
@@ -25,6 +28,9 @@ import com.example.phreighnq.kollectionkeeper.document.Collection;
 import com.example.phreighnq.kollectionkeeper.helper.LiveQueryAdapter;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -35,6 +41,7 @@ public class MainActivity extends ActionBarActivity {
     final static String DB_NAME = "collection_organizer";
 
     public LiveQuery collectionLiveQuery;
+    public List<String> collectionNames= new ArrayList<String>();
 
     private Database getDatabase() {
         Application application = (Application) getApplication();
@@ -48,9 +55,38 @@ public class MainActivity extends ActionBarActivity {
         Query query = view.createQuery();
         query.setLimit(100);
 
-        LiveQueryAdapter liveQueryAdapter = new LiveQueryAdapter(this, query.toLiveQuery());
+        //LiveQueryAdapter liveQueryAdapter = new LiveQueryAdapter(this, query.toLiveQuery());
 
-        collectionList.setAdapter(liveQueryAdapter);
+        //collectionList.setAdapter(liveQueryAdapter);
+
+        List<Document> collections = Collection.getCollectionList(database);
+        for(Iterator<Document> i = collections.iterator(); i.hasNext(); ) {
+            Document item = i.next();
+            Object name = item.getProperty("name");
+            if(name!=null) {
+                collectionNames.add(name.toString());
+            }
+        }
+
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1, collectionNames);
+        collectionList.setAdapter(arrayAdapter);
+
+        collectionList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, android.view.View view, int position, long id) {
+                String selectedCollection=collectionNames.get(position);
+                Toast.makeText(getApplicationContext(), "Kollection Selected : " + selectedCollection, Toast.LENGTH_LONG).show();
+            }
+        });
+
+        collectionList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, android.view.View view, int position, long id) {
+                String selectedCollection=collectionNames.get(position);
+                Toast.makeText(getApplicationContext(), "Kollection Long Clicked : " + selectedCollection, Toast.LENGTH_LONG).show();
+                return false;
+            }
+        });
 
     }
 
@@ -74,6 +110,7 @@ public class MainActivity extends ActionBarActivity {
         Document existingCollection = Collection.getCollection(database, newCollectionName);
         if(existingCollection != null) {
             Log.d(Application.TAG, String.format("Collection '%s' already exists.", newCollectionName));
+            Toast.makeText(getApplicationContext(), "Collection '" + newCollectionName + "' already exists.",   Toast.LENGTH_LONG).show();
             return;
         }
         Collection.createCollection(database, newCollectionName);

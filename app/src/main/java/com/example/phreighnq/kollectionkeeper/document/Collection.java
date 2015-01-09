@@ -1,5 +1,7 @@
 package com.example.phreighnq.kollectionkeeper.document;
 
+import android.support.annotation.NonNull;
+
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Document;
@@ -18,6 +20,7 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 
 /**
@@ -29,6 +32,28 @@ public class Collection {
 
     public String Name;
     public List<Item> Items;
+
+    public static List<Document> getCollectionList(Database database) {
+        List<Document> collections =  new ArrayList<Document>();
+
+        Query query = getAllCollections(database);
+        if(query==null) return collections;
+
+        QueryEnumerator result;
+        try {
+            result = query.run();
+        } catch(CouchbaseLiteException e) {
+            Log.d(Application.TAG, e.getMessage());
+            return collections;
+        }
+
+        for (Iterator<QueryRow> it = result; it.hasNext(); ) {
+            Document doc = it.next().getDocument();
+            collections.add(doc);
+        }
+
+        return collections;
+    }
 
     public static Query getAllCollections(Database database) {
         com.couchbase.lite.View view = database.getView(VIEW_NAME);
@@ -91,10 +116,13 @@ public class Collection {
             return null;
         }
         for (Iterator<QueryRow> it = result; it.hasNext(); ) {
-            QueryRow row = it.next();
-            String collectionName = row.getDocumentProperties().get("name").toString();
-            if (collectionName == name) {
-                return row.getDocument();
+            Document doc = it.next().getDocument();
+            Object nameProp = doc.getProperty("name");
+            if(nameProp!=null) {
+                String collectionName = nameProp.toString();
+                if (collectionName.equalsIgnoreCase(name)) {
+                    return doc;
+                }
             }
         }
 
